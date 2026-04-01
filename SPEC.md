@@ -117,10 +117,10 @@ sodass ich real-world Abstände visualisieren kann.
 
 ### MVP (Must Have)
 - [ ] AWS Lambda + API Gateway aufsetzen
-- [ ] Python FastAPI als Handler
+- [ ] Python FastAPI als Handler (Mangum)
 - [ ] DynamoDB Tables erstellen (Games, Maps, SpawnTypes, POIs, FlightPaths)
 - [ ] Games erstellen (Name, Icon)
-- [ ] Maps zu Games hinzufügen (Upload)
+- [ ] Maps zu Games hinzufügen (externe Bild-URL)
 - [ ] Map-Bild anzeigen
 - [ ] Overlay als temporäres Bild hochladen und via 2 Eck-Anfassern skalieren/positionieren (Seitenverhältnis gelockt, wie Profilbild-Crop)
 - [ ] **Koordinaten immer relativ zur Map (0-1000)** - keine Pixel!
@@ -129,7 +129,7 @@ sodass ich real-world Abstände visualisieren kann.
 - [ ] Spawn-Typ Filter (nur bestimmte Typen anzeigen)
 - [ ] Kartenauswahl oben (1 Klick), Spawn-Auswahl rechts
 - [ ] Spawn-Auswahl bleibt bei Kartwechsel erhalten
-- [ ] localStorage als Caching-Layer (API-Responses cachen)
+- [ ] localStorage als Caching-Layer (API-Responses cachen, KEINE Bilder!)
 - [ ] API-Responses werden in localStorage gecached
 - [ ] Statische Demo-Daten: PUBG + 1 Map + Gleiter-Spawns
 
