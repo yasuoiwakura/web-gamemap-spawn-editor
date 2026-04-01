@@ -13,11 +13,50 @@ Ein spieleoffener Map-Viewer für taktische Spiele (z.B. PUBG), der es Nutzern e
 
 | Layer | Technology | Rationale |
 |-------|------------|-----------|
-| **Frontend** | SvelteKit | SSG-fähig, client-side Interaktivität, niedrige Einstiegshürde |
+| **Frontend** | SvelteKit | SSG-fähig, client-side Interaktivität |
 | **Mapping** | Leaflet | Einfachste Bibliothek für Overlays, Marker, Skalierung |
-| **Persistenz (MVP)** | localStorage/IndexedDB | Lokale Speicherung, kein Backend nötig |
-| **Persistenz (Future)** | Serverless API (Cloudflare Workers o.ä.) | Traffic-Sparen durch Client-first |
-| **Hosting** | GitHub Pages oder Cloudflare Pages | Kostenlos, CDN-inklusive |
+| **Backend (MVP)** | Python FastAPI → AWS Lambda | Developer-Stärke, Serverless |
+| **Database** | DynamoDB | AWS Serverless, skalierbar |
+| **Caching** | localStorage (Client) + API Gateway Cache | Schnelle Map-Wechsel, keine lokalen Daten |
+| **Hosting** | AWS S3 + CloudFront / GitHub Pages | Kostenlos / CDN-inklusive |
+
+### Architektur-Entscheidungen
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  Frontend: SvelteKit                                   │
+│  → Liest: localStorage → API (MVP)                     │
+│  → Später: localStorage → CDN JSON → API               │
+└─────────────────────────────────────────────────────────┘
+                         │
+          ┌──────────────┴──────────────┐
+          ▼                             ▼
+    ┌─────────────┐            ┌─────────────┐
+    │  REST API   │            │ Static JSON │
+    │   (Lambda)  │            │   (Future)  │
+    └─────────────┘            └─────────────┘
+          │
+          ▼
+    ┌─────────────┐
+    │  DynamoDB   │
+    └─────────────┘
+```
+
+### Daten-Priorisierung
+
+| Priority | Quelle | Beschreibung |
+|----------|--------|---------------|
+| **1 (Read)** | localStorage | Cache für schnelle Map-Wechsel |
+| **2 (Read)** | CDN JSON | Später: statische JSON-Files |
+| **3 (Read)** | API → DynamoDB | MVP: Primary Read |
+| **1 (Write)** | API → DynamoDB | Daten-Sicherheit |
+| **2 (Write)** | localStorage invalidieren | Cache aktualisieren |
+
+### Vendor-Lock Hinweis
+
+- **DynamoDB**: AWS-spezifisch, später übertragbar
+- **Homelab-Option**: Export Pipeline → JSON-Files ohne Backend
+- **Future**: Vollständig statisch (CDN-only) ohne Backend-Kosten möglich
 
 ## 3. User Stories
 
@@ -77,6 +116,9 @@ sodass ich real-world Abstände visualisieren kann.
 ## 4. Features & Prioritäten
 
 ### MVP (Must Have)
+- [ ] AWS Lambda + API Gateway aufsetzen
+- [ ] Python FastAPI als Handler
+- [ ] DynamoDB Tables erstellen (Games, Maps, SpawnTypes, POIs, FlightPaths)
 - [ ] Games erstellen (Name, Icon)
 - [ ] Maps zu Games hinzufügen (Upload)
 - [ ] Map-Bild anzeigen
@@ -87,7 +129,8 @@ sodass ich real-world Abstände visualisieren kann.
 - [ ] Spawn-Typ Filter (nur bestimmte Typen anzeigen)
 - [ ] Kartenauswahl oben (1 Klick), Spawn-Auswahl rechts
 - [ ] Spawn-Auswahl bleibt bei Kartwechsel erhalten
-- [ ] localStorage Persistenz
+- [ ] localStorage als Caching-Layer (API-Responses cachen)
+- [ ] API-Responses werden in localStorage gecached
 - [ ] Statische Demo-Daten: PUBG + 1 Map + Gleiter-Spawns
 
 ### P1 (Next Release)
@@ -99,39 +142,44 @@ sodass ich real-world Abstände visualisieren kann.
 - [ ] Export/Import als JSON
 
 ### P2 (Future)
-- [ ] Serverless API für Sync-Check (gibt es neuere Daten?)
+- [ ] CDN JSON Export Pipeline (DynamoDB → S3 → CloudFront)
 - [ ] User-Auth (optional, falls geteilt)
 - [ ] Distanz-Flächen (Kreise um POIs)
 - [ ] Heatmaps für Spawn-Dichte
 - [ ] Mobile-optimierte Ansicht
+- [ ] Homelab-Option: Exportierte JSONs ohne Backend hosten
 
 ## 5. Datenmodell
+
+### DynamoDB Tables
+
+**Hinweis**: Alle Koordinaten sind relativ zur Map (0-1000), nicht in Pixeln.
 
 ### Game
 ```typescript
 interface Game {
-  id: string;
+  id: string;           // UUID
   name: string;
   iconUrl?: string;
-  createdAt: number;
+  createdAt: number;    // Unix Timestamp
 }
 ```
 
 ### Map
 ```typescript
 interface GameMap {
-  id: string;
-  gameId: string;
+  id: string;           // UUID
+  gameId: string;       // Partition Key
   name: string;
-  imageUrl: string;        // URL oder Base64
-  widthPx: number;         // Original-Breite in Pixel
-  heightPx: number;        // Original-Höhe in Pixel
+  imageUrl: string;     // URL oder Base64
+  widthPx: number;     // Original-Breite in Pixel
+  heightPx: number;    // Original-Höhe in Pixel
   realSizeMeters?: number; // Optional: Kartengröße in Metern
   createdAt: number;
 }
 ```
 
-### Overlay (Temporär - nur für aktive Session)
+### Overlay (Temporär - nur für aktive Session, NICHT in DB!)
 ```typescript
 interface Overlay {
   imageUrl: string;   // Base64 vom Upload
@@ -187,38 +235,89 @@ interface FlightPath {
 }
 ```
 
-### AppState
+### Client-Side Cache (localStorage)
 ```typescript
-interface AppState {
-  currentGameId: string | null;
-  currentMapId: string | null;
-  currentSpawnTypeId: string | null; // Bleibt bei Kartwechsel
-  visibleSpawnTypeIds: string[];    // Filter
-  // Overlay ist TEMPORÄR und wird NICHT in localStorage gespeichert!
-  overlay: Overlay | null;
+interface ClientCache {
   games: Game[];
   maps: GameMap[];
   spawnTypes: SpawnType[];
   pois: POI[];
   flightPaths: FlightPath[];
+  lastFetch: number;    // Timestamp des letzten API-Calls
+  currentGameId: string | null;
+  currentMapId: string | null;
+  currentSpawnTypeId: string | null;
+  visibleSpawnTypeIds: string[];
 }
 ```
+**Hinweis**: localStorage dient als Cache, nicht als Primary Storage. Source of Truth ist die DynamoDB.
 
-## 6. API Design (Future)
+## 6. API Design
 
-### MVP: Kein Backend, nur localStorage
+### MVP: AWS Serverless (Lambda + DynamoDB)
 
-### Future: Serverless Sync-Check
+```
+Base URL: https://{api-id}.execute-api.{region}.amazonaws.com/prod
+```
+
+#### Games
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/games` | Alle Games abrufen |
+| GET | `/games/{id}` | Einzelnes Game abrufen |
+| POST | `/games` | Neues Game erstellen |
+| PUT | `/games/{id}` | Game aktualisieren |
+| DELETE | `/games/{id}` | Game löschen |
+
+#### Maps
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/games/{gameId}/maps` | Alle Maps eines Games |
+| GET | `/maps/{id}` | Einzelne Map abrufen |
+| POST | `/games/{gameId}/maps` | Neue Map erstellen |
+| PUT | `/maps/{id}` | Map aktualisieren |
+| DELETE | `/maps/{id}` | Map löschen |
+
+#### SpawnTypes
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/games/{gameId}/spawn-types` | Alle Spawn-Typen eines Games |
+| POST | `/games/{gameId}/spawn-types` | Neuen Spawn-Typ erstellen |
+| PUT | `/spawn-types/{id}` | Spawn-Typ aktualisieren |
+| DELETE | `/spawn-types/{id}` | Spawn-Typ löschen |
+
+#### POIs
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/maps/{mapId}/pois` | Alle POIs einer Map |
+| POST | `/maps/{mapId}/pois` | Neuen POI erstellen |
+| PUT | `/pois/{id}` | POI aktualisieren |
+| DELETE | `/pois/{id}` | POI löschen |
+
+#### FlightPaths
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/maps/{mapId}/flight-paths` | Alle Flugbahnen einer Map |
+| POST | `/maps/{mapId}/flight-paths` | Neue Flugbahn erstellen |
+| DELETE | `/flight-paths/{id}` | Flugbahn löschen |
+
+### Future: CDN Static JSON
+
+```
+GET /export/{type}.json
+```
+Exportiert alle Daten als statische JSON-Files für CDN-Hosting.
+
+### Future: Sync-Check
+
 ```
 GET /api/check-update?lastSync=<timestamp>
 Response: { hasUpdates: boolean, latestTimestamp: number }
-```
-
-### Future: Full Sync API
-```
-GET /api/data
-POST /api/data
-DELETE /api/data/:type/:id
 ```
 
 ## 7. UI Layout
@@ -244,14 +343,23 @@ DELETE /api/data/:type/:id
 
 ### Im Specfile notiert (offen)
 - [x] **Overlay-Kalibrierung**: 2 Eck-Anfasser, Seitenverhältnis gelockt ✓ (entschieden)
+- [x] **Persistenz**: Serverless Backend mit DynamoDB (entschieden)
+- [x] **Caching**: localStorage als Client-Cache (entschieden)
+- [x] **Backend-Sprache**: Python FastAPI (entschieden)
 - [ ] **Icon-Format**: SVGs oder Font-Icons für Spawn-Typen? (SVGs flexibler, Font-Icons einfacher)
 - [ ] **Mehrere Overlays**: Sollen mehrere Overlays pro Karte möglich sein (z.B. verschiedene Season-Maps)?
 - [ ] **Share-Funktion**: Export-Link oder nur JSON-Export?
 - [ ] **Map-Optimierung**: Sollen große Map-Bilder komprimiert werden?
 
+### Architektur-Entscheidungen (dokumentiert)
+- AWS Serverless Stack (Lambda + DynamoDB)
+- Python Backend (FastAPI)
+- CDN JSON Export Pipeline (Future)
+- Homelab-Option über statische JSONs (Future)
+
 ### Für später (nicht MVP)
 - [ ] **User-Auth**: Wenn geteilt, sollen Nutzer ihre eigenen Karten haben oder öffentlich?
-- [ ] **Cloudflare Workers vs. Firebase**: Für Serverless-Backend
+- [ ] **Homelab**: SQLite-Adapter oder reine JSON-Export Lösung?
 - [ ] **PWA**: Offline-Fähigkeit als separate App?
 
 ## 9. Akzeptanzkriterien MVP
@@ -271,7 +379,33 @@ DELETE /api/data/:type/:id
 - Flugbahn mit 2 Klicks
 - Spawn-Rotation
 
-## 10. Projektstruktur (SvelteKit)
+## 10. Projektstruktur
+
+### Full-Stack Architektur
+
+```
+web-gamemap-spawn-editor/
+├── frontend/                  # SvelteKit App
+│   ├── src/
+│   │   ├── lib/
+│   │   │   ├── components/   # UI Komponenten
+│   │   │   ├── stores/       # Svelte Stores + localStorage Cache
+│   │   │   ├── types/       # TypeScript Interfaces
+│   │   │   └── utils/       # Hilfsfunktionen
+│   │   └── routes/          # SvelteKit Pages
+│   └── static/              # Statische Assets
+├── backend/                  # Python FastAPI (Lambda)
+│   ├── app/
+│   │   ├── main.py         # FastAPI App
+│   │   ├── routers/       # API Endpoints
+│   │   ├── models/        # Pydantic Models
+│   │   └── services/      # Business Logic
+│   ├── requirements.txt   # Python Dependencies
+│   └── serverless.yml     # AWS Serverless Config
+└── infrastructure/          # Terraform/CloudFormation (später)
+```
+
+### Frontend (SvelteKit)
 
 ```
 src/
@@ -286,38 +420,98 @@ src/
 │   │   ├── SpawnPanel.svelte    # Rechte Leiste
 │   │   └── TypeEditor.svelte   # Spawn-Typ bearbeiten
 │   ├── stores/
-│   │   └── appState.ts          # Svelte Stores + localStorage
+│   │   ├── appState.ts          # Svelte Stores
+│   │   └── cache.ts            # localStorage Cache Manager
 │   ├── types/
 │   │   └── index.ts             # TypeScript Interfaces
+│   ├── api/
+│   │   └── client.ts           # API Client
 │   └── utils/
 │       ├── coordinates.ts       # Relative <-> Pixel Konvertierung
-│       └── storage.ts            # localStorage Wrapper
+│       └── cache.ts            # localStorage Wrapper
 ├── routes/
 │   ├── +page.svelte             # Hauptansicht
-│   ├── +layout.svelte           # Layout
-│   └── games/
-│       └── [gameId]/
-│           └── +page.svelte     # Game-Ansicht
+│   └── +layout.svelte           # Layout
 └── static/
     ├── demo/
     │   └── pubg-erangel.json    # Demo-Daten
     └── icons/                   # Spawn-Type Icons
 ```
 
+### Backend (Python FastAPI → Lambda)
+
+```
+backend/app/
+├── main.py              # FastAPI Entry Point (Mangum für Lambda)
+├── routers/
+│   ├── games.py         # /games Endpoints
+│   ├── maps.py          # /maps Endpoints
+│   ├── spawn_types.py  # /spawn-types Endpoints
+│   ├── pois.py          # /pois Endpoints
+│   └── flight_paths.py # /flight-paths Endpoints
+├── models/
+│   ├── game.py         # Pydantic Models
+│   ├── map.py
+│   ├── spawn_type.py
+│   ├── poi.py
+│   └── flight_path.py
+├── services/
+│   ├── dynamodb.py     # DynamoDB Operations
+│   └── cache.py        # Cache Invalidation
+└── utils/
+    ├── id.py           # UUID Generator
+    └── responses.py    # Response Formatter
+```
+
+### DynamoDB Tables
+
+| Table | Partition Key | Sort Key | Description |
+|-------|--------------|----------|-------------|
+| `games` | `id` | - | Alle Games |
+| `maps` | `gameId` | `id` | Maps pro Game |
+| `spawn-types` | `gameId` | `id` | Spawn-Typen pro Game |
+| `pois` | `mapId` | `id` | POIs pro Map |
+| `flight-paths` | `mapId` | `id` | Flugbahnen pro Map |
+
 ## 11. Nächste Schritte
 
-1. **Design & Prototyping**: Lo-Fi Wireframes der Hauptansicht
-2. **SvelteKit Setup**: Projekt initialisieren, Leaflet einbinden
-3. **Datenmodell**: TypeScript Interfaces + localStorage Service
-4. **Map-Anzeige**: Leaflet mit Demo-Map zum Laufen bringen
-5. **Overlay-Funktion**: Bild-Upload + Transform-Anfassern
-6. **POI-System**: Klick-Handler + Spawn-Typen
-7. **UI-Layout**: Game/Map/Overlay Selector + Spawn Panel
-8. **Persistenz**: Alles in localStorage speichern
-9. **Demo-Daten**: PUBG-Erangel mit Gleiter-Spawns
-10. **Testing**: Manuelle Tests + ggf. Playwright
+### Phase 1: Backend (MVP)
+
+1. **AWS Account aufsetzen** (falls nicht vorhanden)
+2. **Serverless Framework** installieren
+3. **DynamoDB Tables** erstellen (games, maps, spawn-types, pois, flight-paths)
+4. **Python FastAPI** Code schreiben
+5. **Lambda Handler** konfigurieren (Mangum)
+6. **API deployen** und testen
+
+### Phase 2: Frontend (MVP)
+
+1. **SvelteKit Projekt** initialisieren
+2. **Leaflet** einbinden
+3. **API Client** schreiben mit Cache-Logik
+4. **UI Komponenten** entwickeln
+5. **localStorage Cache** implementieren
+
+### Phase 3: Integration
+
+1. **API-Calls** mit localStorage-Cache verbinden
+2. **Demo-Daten** laden (PUBG + Erangel + Gleiter-Spawns)
+3. **Testen** der kompletten User Flows
+
+### Phase 4: Pipeline (Future)
+
+1. **Export Script** schreiben (DynamoDB → JSON)
+2. **S3 Bucket** aufsetzen für statische JSONs
+3. **CloudFront** als CDN konfigurieren
+4. **Trigger** für automatische Exports (Cron/Event)
+
+### Phase 5: Homelab-Option (Future)
+
+1. **Exportierte JSONs** lokal hosten
+2. **Optional**: Python API mit SQLite
+3. **Docker Compose** für lokalen Betrieb
 
 ---
 
 *Erstellt: 2026-04-01*
-*Version: 0.1 (Draft)*
+*Version: 0.2 - Serverless Architektur mit Python Backend*
