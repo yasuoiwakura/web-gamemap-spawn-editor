@@ -31,6 +31,9 @@ ENV/
 *.swp
 *.swo
 
+# AWS SAM
+.aws-sam/
+
 # Serverless
 .serverless/
 *.log
