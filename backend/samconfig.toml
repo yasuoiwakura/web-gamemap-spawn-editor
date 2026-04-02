@@ -1,0 +1,14 @@
+version = 0.1
+
+[default.deploy.parameters]
+confirm_changeset = false
+stack_name = "spawnmap-test"
+resolve_s3 = true
+capabilities = [ "CAPABILITY_IAM", "CAPABILITY_NAMED_IAM" ]
+
+  [default.deploy.parameters.parameter_overrides]
+  TableSuffix = "test"
+
+[default.global.parameters]
+region = "us-east-1"
+stack_name = "spawnmap-test"

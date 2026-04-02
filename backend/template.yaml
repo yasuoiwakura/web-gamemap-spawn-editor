@@ -1,0 +1,149 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: GameMap Spawn Editor API
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 256
+    Runtime: python3.14
+    Environment:
+      Variables:
+        TABLE_SUFFIX: !Ref TableSuffix
+        REGION: !Ref AWS::Region
+
+Parameters:
+  TableSuffix:
+    Type: String
+    Default: ''
+    Description: Optional suffix for table names (e.g., -dev, -prod)
+
+Resources:
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handler.handler
+      CodeUri: .
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Sub games${TableSuffix}
+        - DynamoDBCrudPolicy:
+            TableName: !Sub maps${TableSuffix}
+        - DynamoDBCrudPolicy:
+            TableName: !Sub spawn-types${TableSuffix}
+        - DynamoDBCrudPolicy:
+            TableName: !Sub pois${TableSuffix}
+        - DynamoDBCrudPolicy:
+            TableName: !Sub flight-paths${TableSuffix}
+      Events:
+        ApiAny:
+          Type: Api
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+        ApiRoot:
+          Type: Api
+          Properties:
+            Path: /
+            Method: ANY
+
+  GamesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub games${TableSuffix}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+
+  MapsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub maps${TableSuffix}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: gameId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: gameId-index
+          KeySchema:
+            - AttributeName: gameId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+
+  SpawnTypesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub spawn-types${TableSuffix}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: gameId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: gameId-index
+          KeySchema:
+            - AttributeName: gameId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+
+  POIsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub pois${TableSuffix}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: mapId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: mapId-index
+          KeySchema:
+            - AttributeName: mapId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+
+  FlightPathsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub flight-paths${TableSuffix}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: mapId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: mapId-index
+          KeySchema:
+            - AttributeName: mapId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+
+Outputs:
+  ApiUrl:
+    Description: API Gateway endpoint URL
+    Value: !Sub https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod
