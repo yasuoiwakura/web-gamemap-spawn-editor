@@ -46,7 +46,8 @@ app.include_router(flight_paths.router)
 
 @app.get("/health")
 def health_check():
-    return {"status": "healthy"}
+    from fastapi.responses import JSONResponse
+    return JSONResponse(content={"status": "healthy"}, headers=CORS_HEADERS)
 
 
 handler = Mangum(app)

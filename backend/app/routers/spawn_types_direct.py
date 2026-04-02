@@ -1,6 +1,19 @@
 from fastapi import APIRouter, HTTPException, status
+from fastapi.responses import JSONResponse
+from typing import Any
 from pydantic import BaseModel
 from ..services.dynamodb import db_service
+
+CORS_HEADERS = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+}
+
+
+def cors_response(content: Any, status_code: int = 200) -> JSONResponse:
+    return JSONResponse(content=content, status_code=status_code, headers=CORS_HEADERS)
+
 
 router = APIRouter(prefix="/spawn-types", tags=["spawn-types"])
 
@@ -17,7 +30,7 @@ def get_spawn_type(spawn_type_id: str):
     spawn_type = db_service.get_spawn_type(spawn_type_id)
     if not spawn_type:
         raise HTTPException(status_code=404, detail="Spawn type not found")
-    return spawn_type
+    return cors_response(spawn_type)
 
 
 @router.put("/{spawn_type_id}")
@@ -25,19 +38,19 @@ def update_spawn_type(spawn_type_id: str, spawn_type_update: SpawnTypeUpdate):
     existing = db_service.get_spawn_type(spawn_type_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Spawn type not found")
-    return db_service.update_spawn_type(
+    return cors_response(db_service.update_spawn_type(
         spawn_type_id,
         name=spawn_type_update.name,
         color=spawn_type_update.color,
         icon_type=spawn_type_update.iconType,
         rotation_enabled=spawn_type_update.rotationEnabled
-    )
+    ))
 
 
-@router.delete("/{spawn_type_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{spawn_type_id}")
 def delete_spawn_type(spawn_type_id: str):
     existing = db_service.get_spawn_type(spawn_type_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Spawn type not found")
     db_service.delete_spawn_type(spawn_type_id)
-    return None
+    return cors_response(None, status_code=status.HTTP_204_NO_CONTENT)
