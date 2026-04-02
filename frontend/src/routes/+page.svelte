@@ -31,32 +31,35 @@
     setOverlay,
   } from '$lib/stores';
 
-  let showCreateGame = false;
-  let showCreateMap = false;
-  let showCreateSpawnType = false;
-  let newGameName = '';
-  let newMapName = '';
-  let newMapUrl = '';
-  let newMapWidth = 1920;
-  let newMapHeight = 1080;
-  let newSpawnTypeName = '';
-  let newSpawnTypeColor = '#ff0000';
-  let flightMode = false;
-  let flightStart: { x: number; y: number } | null = null;
+  let showCreateGame = $state(false);
+  let showCreateMap = $state(false);
+  let showCreateSpawnType = $state(false);
+  let newGameName = $state('');
+  let newMapName = $state('');
+  let newMapUrl = $state('');
+  let newMapWidth = $state(1920);
+  let newMapHeight = $state(1080);
+  let newSpawnTypeName = $state('');
+  let newSpawnTypeColor = $state('#ff0000');
+  let flightMode = $state(false);
+  let flightStart: { x: number; y: number } | null = $state(null);
 
-  $: currentGame = $games.find(g => g.id === $clientState.currentGameId) || null;
-  $: currentMap = $maps.find(m => m.id === $clientState.currentMapId) || null;
-  $: currentSpawnType = $spawnTypes.find(st => st.id === $clientState.currentSpawnTypeId) || null;
+  let currentGame = $derived($games.find(g => g.id === $clientState.currentGameId) || null);
+  let currentMap = $derived($maps.find(m => m.id === $clientState.currentMapId) || null);
 
-  $: if ($clientState.currentGameId) {
-    loadMaps($clientState.currentGameId);
-    loadSpawnTypes($clientState.currentGameId);
-  }
+  $effect(() => {
+    if ($clientState.currentGameId) {
+      loadMaps($clientState.currentGameId);
+      loadSpawnTypes($clientState.currentGameId);
+    }
+  });
 
-  $: if ($clientState.currentMapId) {
-    loadPOIs($clientState.currentMapId);
-    loadFlightPaths($clientState.currentMapId);
-  }
+  $effect(() => {
+    if ($clientState.currentMapId) {
+      loadPOIs($clientState.currentMapId);
+      loadFlightPaths($clientState.currentMapId);
+    }
+  });
 
   onMount(() => {
     loadGames();
@@ -186,7 +189,7 @@
       {#if $clientState.currentGameId}
         <button
           class="px-3 py-2 bg-blue-600 rounded hover:bg-blue-700"
-          on:click={() => showCreateGame = true}
+          onclick={() => showCreateGame = true}
         >
           + Game
         </button>
@@ -206,7 +209,7 @@
       {#if $clientState.currentGameId}
         <button
           class="px-3 py-2 bg-green-600 rounded hover:bg-green-700"
-          on:click={() => showCreateMap = true}
+          onclick={() => showCreateMap = true}
         >
           + Map
         </button>
@@ -215,7 +218,7 @@
       <div class="ml-auto flex items-center gap-2">
         <button
           class="px-3 py-2 rounded {flightMode ? 'bg-yellow-600' : 'bg-gray-600'}"
-          on:click={toggleFlightMode}
+          onclick={toggleFlightMode}
         >
           {flightMode ? 'Flight Mode (2 clicks)' : 'Flight Mode'}
         </button>
@@ -288,8 +291,8 @@
         class="w-full bg-gray-700 text-white px-3 py-2 rounded mb-4"
       />
       <div class="flex gap-2 justify-end">
-        <button class="px-4 py-2 bg-gray-600 rounded" on:click={() => showCreateGame = false}>Cancel</button>
-        <button class="px-4 py-2 bg-blue-600 rounded" on:click={handleCreateGame}>Create</button>
+        <button class="px-4 py-2 bg-gray-600 rounded" onclick={() => showCreateGame = false}>Cancel</button>
+        <button class="px-4 py-2 bg-blue-600 rounded" onclick={handleCreateGame}>Create</button>
       </div>
     </div>
   </div>
@@ -328,8 +331,8 @@
         </div>
       </div>
       <div class="flex gap-2 justify-end mt-4">
-        <button class="px-4 py-2 bg-gray-600 rounded" on:click={() => showCreateMap = false}>Cancel</button>
-        <button class="px-4 py-2 bg-green-600 rounded" on:click={handleCreateMap}>Create</button>
+        <button class="px-4 py-2 bg-gray-600 rounded" onclick={() => showCreateMap = false}>Cancel</button>
+        <button class="px-4 py-2 bg-green-600 rounded" onclick={handleCreateMap}>Create</button>
       </div>
     </div>
   </div>
@@ -356,8 +359,8 @@
         </div>
       </div>
       <div class="flex gap-2 justify-end mt-4">
-        <button class="px-4 py-2 bg-gray-600 rounded" on:click={() => showCreateSpawnType = false}>Cancel</button>
-        <button class="px-4 py-2 bg-blue-600 rounded" on:click={handleCreateSpawnType}>Create</button>
+        <button class="px-4 py-2 bg-gray-600 rounded" onclick={() => showCreateSpawnType = false}>Cancel</button>
+        <button class="px-4 py-2 bg-blue-600 rounded" onclick={handleCreateSpawnType}>Create</button>
       </div>
     </div>
   </div>
