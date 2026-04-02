@@ -1,5 +1,0 @@
-from .game_repository import DynamoDBGameRepository
-from .map_repository import DynamoDBMapRepository
-from .spawn_type_repository import DynamoDBSpawnTypeRepository
-from .poi_repository import DynamoDBPOIRepository
-from .flight_path_repository import DynamoDBFlightPathRepository

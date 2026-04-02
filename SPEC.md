@@ -398,84 +398,71 @@ web-gamemap-spawn-editor/
 ├── backend/                  # Python FastAPI (Lambda)
 │   ├── app/
 │   │   ├── main.py         # FastAPI App
-│   │   ├── routers/        # API Endpoints
-│   │   ├── models/         # Pydantic Models
-│   │   ├── repositories/   # Repository Layer (ABSTRACTION)
-│   │   │   ├── interfaces/ # Repository Interfaces
-│   │   │   ├── implementations/ # DynamoDB Implementations
-│   │   │   └── factory.py  # Repository Factory
-│   │   └── services/       # Business Logic Services
+│   │   ├── routers/       # API Endpoints
+│   │   ├── models/        # Pydantic Models
+│   │   └── services/      # Business Logic
 │   ├── requirements.txt   # Python Dependencies
 │   └── serverless.yml     # AWS Serverless Config
 └── infrastructure/          # Terraform/CloudFormation (später)
 ```
 
-### Backend Architecture (Repository Layer)
+### Frontend (SvelteKit)
+
+```
+src/
+├── lib/
+│   ├── components/
+│   │   ├── Map.svelte           # Leaflet-Integration
+│   │   ├── OverlayCanvas.svelte # Overlay mit Anfassern
+│   │   ├── POIMarker.svelte     # Spawn-Punkte
+│   │   ├── FlightPath.svelte    # Flugbahn
+│   │   ├── GameSelector.svelte  # Spiel-Auswahl
+│   │   ├── MapTabs.svelte       # Map-Register
+│   │   ├── SpawnPanel.svelte    # Rechte Leiste
+│   │   └── TypeEditor.svelte   # Spawn-Typ bearbeiten
+│   ├── stores/
+│   │   ├── appState.ts          # Svelte Stores
+│   │   └── cache.ts            # localStorage Cache Manager
+│   ├── types/
+│   │   └── index.ts             # TypeScript Interfaces
+│   ├── api/
+│   │   └── client.ts           # API Client
+│   └── utils/
+│       ├── coordinates.ts       # Relative <-> Pixel Konvertierung
+│       └── cache.ts            # localStorage Wrapper
+├── routes/
+│   ├── +page.svelte             # Hauptansicht
+│   └── +layout.svelte           # Layout
+└── static/
+    ├── demo/
+    │   └── pubg-erangel.json    # Demo-Daten
+    └── icons/                   # Spawn-Type Icons
+```
+
+### Backend (Python FastAPI → Lambda)
 
 ```
 backend/app/
 ├── main.py              # FastAPI Entry Point (Mangum für Lambda)
-├── routers/             # API Endpoints
-│   ├── games.py
-│   ├── maps.py
-│   ├── spawn_types.py
-│   ├── pois.py
-│   └── flight_paths.py
-├── models/              # Pydantic Models (Domain Models)
-├── repositories/       # REPOSITORY LAYER
-│   ├── interfaces/     # Abstract Repository Interfaces
-│   │   ├── game_repository.py
-│   │   ├── map_repository.py
-│   │   ├── spawn_type_repository.py
-│   │   ├── poi_repository.py
-│   │   └── flight_path_repository.py
-│   ├── implementations/ # DynamoDB Implementations
-│   │   ├── dynamodb_client.py
-│   │   ├── game_repository.py
-│   │   ├── map_repository.py
-│   │   ├── spawn_type_repository.py
-│   │   ├── poi_repository.py
-│   │   └── flight_path_repository.py
-│   └── factory.py      # Repository Factory (DI)
-└── services/           # Business Logic (if needed)
+├── routers/
+│   ├── games.py         # /games Endpoints
+│   ├── maps.py          # /maps Endpoints
+│   ├── spawn_types.py  # /spawn-types Endpoints
+│   ├── pois.py          # /pois Endpoints
+│   └── flight_paths.py # /flight-paths Endpoints
+├── models/
+│   ├── game.py         # Pydantic Models
+│   ├── map.py
+│   ├── spawn_type.py
+│   ├── poi.py
+│   └── flight_path.py
+├── services/
+│   ├── dynamodb.py     # DynamoDB Operations
+│   └── cache.py        # Cache Invalidation
+└── utils/
+    ├── id.py           # UUID Generator
+    └── responses.py    # Response Formatter
 ```
-
-### Repository Pattern - Design Principles
-
-1. **Interface-driven**: All repositories implement abstract interfaces
-2. **Use-case methods**: Methods reflect access patterns, NOT generic CRUD
-3. **Database-agnostic**: Business logic knows nothing about the underlying DB
-4. **Dependency Injection**: Factory resolves implementations based on configuration
-
-**Example Interface** (GameRepository):
-```python
-class GameRepository(ABC):
-    def get_all(self) -> List[Game]: pass
-    def get_by_id(self, game_id: str) -> Optional[Game]: pass
-    def create(self, game: GameCreate) -> Game: pass
-    def update(self, game_id: str, game: GameCreate) -> Optional[Game]: pass
-    def delete(self, game_id: str) -> bool: pass
-```
-
-**Example Factory Usage**:
-```python
-repo = get_repository_factory().get_game_repository()
-games = repo.get_all()  # Business logic uses interface only
-```
-
-### Database Abstraction Strategy
-
-The architecture enables clean database switching through:
-
-1. **Repository Interfaces**: Define contracts independent of storage
-2. **Factory Pattern**: Resolves implementations via `DB_TYPE` env var
-3. **Clean Domain Models**: Pydantic models are database-agnostic
-4. **No DB Leaks**: DynamoDB SDK is confined to repository implementations
-
-**MongoDB Migration Path**:
-- Implement `MongoDBGameRepository`, `MongoDBMapRepository`, etc.
-- Set `DB_TYPE=mongodb` environment variable
-- No changes needed to routers or business logic
 
 ### DynamoDB Tables
 
@@ -494,7 +481,7 @@ The architecture enables clean database switching through:
 1. **AWS Account aufsetzen** (falls nicht vorhanden)
 2. **Serverless Framework** installieren
 3. **DynamoDB Tables** erstellen (games, maps, spawn-types, pois, flight-paths)
-4. **Python FastAPI** Code schreiben (mit Repository Layer)
+4. **Python FastAPI** Code schreiben
 5. **Lambda Handler** konfigurieren (Mangum)
 6. **API deployen** und testen
 
@@ -522,10 +509,10 @@ The architecture enables clean database switching through:
 ### Phase 5: Homelab-Option (Future)
 
 1. **Exportierte JSONs** lokal hosten
-2. **Optional**: MongoDB Adapter verwenden
+2. **Optional**: Python API mit SQLite
 3. **Docker Compose** für lokalen Betrieb
 
 ---
 
 *Erstellt: 2026-04-01*
-*Version: 0.3 - Repository Layer mit DynamoDB/MongoDB Abstraktion*
+*Version: 0.2 - Serverless Architektur mit Python Backend*
