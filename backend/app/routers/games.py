@@ -1,21 +1,19 @@
 from fastapi import APIRouter, HTTPException, status
 from typing import List
 from ..models import GameCreate, Game
-from ..repositories import get_repository_factory
+from ..services.dynamodb import db_service
 
 router = APIRouter(prefix="/games", tags=["games"])
 
 
 @router.get("", response_model=List[Game])
 def get_games():
-    repo = get_repository_factory().get_game_repository()
-    return repo.get_all()
+    return db_service.get_all_games()
 
 
 @router.get("/{game_id}", response_model=Game)
 def get_game(game_id: str):
-    repo = get_repository_factory().get_game_repository()
-    game = repo.get_by_id(game_id)
+    game = db_service.get_game(game_id)
     if not game:
         raise HTTPException(status_code=404, detail="Game not found")
     return game
@@ -23,24 +21,21 @@ def get_game(game_id: str):
 
 @router.post("", response_model=Game, status_code=status.HTTP_201_CREATED)
 def create_game(game: GameCreate):
-    repo = get_repository_factory().get_game_repository()
-    return repo.create(game)
+    return db_service.create_game(name=game.name, icon_url=game.iconUrl)
 
 
 @router.put("/{game_id}", response_model=Game)
 def update_game(game_id: str, game: GameCreate):
-    repo = get_repository_factory().get_game_repository()
-    existing = repo.get_by_id(game_id)
+    existing = db_service.get_game(game_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Game not found")
-    return repo.update(game_id, game)
+    return db_service.update_game(game_id, name=game.name, icon_url=game.iconUrl)
 
 
 @router.delete("/{game_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_game(game_id: str):
-    repo = get_repository_factory().get_game_repository()
-    existing = repo.get_by_id(game_id)
+    existing = db_service.get_game(game_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Game not found")
-    repo.delete(game_id)
+    db_service.delete_game(game_id)
     return None
