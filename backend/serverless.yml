@@ -1,0 +1,152 @@
+service: gamemap-spawn-editor
+
+provider:
+  name: aws
+  runtime: python3.11
+  stage: prod
+  region: ${self:custom.region}
+
+  environment:
+    TABLE_SUFFIX: ${self:custom.tableSuffix}
+
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:DescribeTable
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource:
+            - "arn:aws:dynamodb:${self:provider.region}:*:table/games"
+            - "arn:aws:dynamodb:${self:provider.region}:*:table/maps"
+            - "arn:aws:dynamodb:${self:provider.region}:*:table/spawn-types"
+            - "arn:aws:dynamodb:${self:provider.region}:*:table/pois"
+            - "arn:aws:dynamodb:${self:provider.region}:*:table/flight-paths"
+
+functions:
+  api:
+    handler: handler.handler
+    events:
+      - http:
+          path: /{proxy+}
+          method: ANY
+      - http:
+          path: /
+          method: ANY
+    timeout: 30
+    memorySize: 256
+
+custom:
+  region: ${opt:region, 'eu-central-1'}
+  tableSuffix: ${opt:tableSuffix, ''}
+
+resources:
+  Resources:
+    GamesTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: games${self:custom.tableSuffix}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+
+    MapsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: maps${self:custom.tableSuffix}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          - AttributeName: gameId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: gameId-index
+            KeySchema:
+              - AttributeName: gameId
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+
+    SpawnTypesTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: spawn-types${self:custom.tableSuffix}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          - AttributeName: gameId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: gameId-index
+            KeySchema:
+              - AttributeName: gameId
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+
+    POIsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: pois${self:custom.tableSuffix}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          - AttributeName: mapId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: mapId-index
+            KeySchema:
+              - AttributeName: mapId
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+
+    FlightPathsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: flight-paths${self:custom.tableSuffix}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          - AttributeName: mapId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: mapId-index
+            KeySchema:
+              - AttributeName: mapId
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+
+package:
+  individually: true
+  patterns:
+    - '!/**'
+    - 'app/**'
+    - 'handler.py'
+    - 'requirements.txt'
