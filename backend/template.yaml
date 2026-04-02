@@ -6,7 +6,7 @@ Globals:
   Function:
     Timeout: 30
     MemorySize: 256
-    Runtime: python3.11
+    Runtime: python3.14
     Environment:
       Variables:
         TABLE_SUFFIX: !Ref TableSuffix
