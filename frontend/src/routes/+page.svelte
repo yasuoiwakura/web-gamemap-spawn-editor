@@ -104,8 +104,8 @@
     showCreateSpawnType = false;
   }
 
-  function handleMapClick(event: CustomEvent<{ x: number; y: number }>) {
-    const { x, y } = event.detail;
+  function handleMapClick(data: { x: number; y: number }) {
+    const { x, y } = data;
     
     if (flightMode && $clientState.currentMapId) {
       if (!flightStart) {
@@ -131,20 +131,19 @@
     }
   }
 
-  function handleSelectGame(event: CustomEvent<string>) {
-    setCurrentGame(event.detail);
+  function handleSelectGame(gameId: string) {
+    setCurrentGame(gameId);
   }
 
-  function handleSelectMap(event: CustomEvent<string>) {
-    setCurrentMap(event.detail);
+  function handleSelectMap(mapId: string) {
+    setCurrentMap(mapId);
   }
 
-  function handleSelectSpawnType(event: CustomEvent<string>) {
-    setCurrentSpawnType(event.detail);
+  function handleSelectSpawnType(id: string) {
+    setCurrentSpawnType(id);
   }
 
-  function handleToggleVisibility(event: CustomEvent<string>) {
-    const id = event.detail;
+  function handleToggleVisibility(id: string) {
     setVisibleSpawnTypes(
       $clientState.visibleSpawnTypeIds.includes(id)
         ? $clientState.visibleSpawnTypeIds.filter(i => i !== id)
@@ -152,17 +151,17 @@
     );
   }
 
-  function handleOverlayLoad(event: CustomEvent<string>) {
+  function handleOverlayLoad(imageUrl: string) {
     setOverlay({
-      imageUrl: event.detail,
+      imageUrl,
       x: 0,
       y: 0,
       scale: 0.5,
     });
   }
 
-  function handleOverlayUpdate(event: CustomEvent<typeof $clientState.overlay>) {
-    setOverlay(event.detail);
+  function handleOverlayUpdate(updatedOverlay: typeof $clientState.overlay) {
+    setOverlay(updatedOverlay);
   }
 
   function handleOverlayClear() {
@@ -183,7 +182,7 @@
       <GameSelector 
         games={$games} 
         currentGameId={$clientState.currentGameId}
-        on:select={handleSelectGame}
+        onselect={handleSelectGame}
       />
       
       {#if $clientState.currentGameId}
@@ -203,7 +202,7 @@
       <MapTabs 
         maps={$maps}
         currentMapId={$clientState.currentMapId}
-        on:select={handleSelectMap}
+        onselect={handleSelectMap}
       />
       
       {#if $clientState.currentGameId}
@@ -235,7 +234,7 @@
           flightPaths={$flightPaths}
           spawnTypes={$spawnTypes}
           overlay={$clientState.overlay}
-          on:mapClick={handleMapClick}
+          onmapclick={handleMapClick}
         />
       {:else}
         <div class="flex items-center justify-center h-full text-gray-500">
@@ -253,16 +252,16 @@
         spawnTypes={$spawnTypes}
         currentSpawnTypeId={$clientState.currentSpawnTypeId}
         visibleSpawnTypeIds={$clientState.visibleSpawnTypeIds}
-        on:selectSpawnType={handleSelectSpawnType}
-        on:toggleVisibility={handleToggleVisibility}
-        on:create={() => showCreateSpawnType = true}
+        onselectSpawnType={handleSelectSpawnType}
+        ontoggleVisibility={handleToggleVisibility}
+        oncreate={() => showCreateSpawnType = true}
       />
       
       <OverlayPanel
         overlay={$clientState.overlay}
-        on:load={handleOverlayLoad}
-        on:update={handleOverlayUpdate}
-        on:clear={handleOverlayClear}
+        onload={handleOverlayLoad}
+        onupdate={handleOverlayUpdate}
+        onclear={handleOverlayClear}
       />
     </aside>
   </main>

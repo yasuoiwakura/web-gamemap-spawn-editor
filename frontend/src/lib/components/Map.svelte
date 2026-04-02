@@ -1,15 +1,17 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import type { GameMap, POI, FlightPath, SpawnType, Overlay } from '$lib/types';
-  import { createEventDispatcher } from 'svelte';
 
-  export let map: GameMap;
-  export let pois: POI[] = [];
-  export let flightPaths: FlightPath[] = [];
-  export let spawnTypes: SpawnType[] = [];
-  export let overlay: Overlay | null = null;
+  interface Props {
+    map: GameMap;
+    pois: POI[];
+    flightPaths: FlightPath[];
+    spawnTypes: SpawnType[];
+    overlay: Overlay | null;
+    onmapclick?: (data: { x: number; y: number }) => void;
+  }
 
-  const dispatch = createEventDispatcher();
+  let { map, pois, flightPaths, spawnTypes, overlay, onmapclick }: Props = $props();
 
   let mapContainer: HTMLDivElement;
   let leafletMap: L.Map | null = null;
@@ -106,14 +108,25 @@
     const y = Math.round(1000 - e.latlng.lat);
     
     if (x >= 0 && x <= 1000 && y >= 0 && y <= 1000) {
-      dispatch('mapClick', { x, y });
+      onmapclick?.({ x, y });
     }
   }
 
-  $: if (leafletMap && map) updateMap();
-  $: if (leafletMap && pois) updatePOIs();
-  $: if (leafletMap && flightPaths) updateFlightPaths();
-  $: if (leafletMap && overlay !== undefined) updateOverlayLayer();
+  $effect(() => {
+    if (leafletMap && map) updateMap();
+  });
+
+  $effect(() => {
+    if (leafletMap && pois) updatePOIs();
+  });
+
+  $effect(() => {
+    if (leafletMap && flightPaths) updateFlightPaths();
+  });
+
+  $effect(() => {
+    if (leafletMap && overlay !== undefined) updateOverlayLayer();
+  });
 
   onMount(async () => {
     L = await import('leaflet');
