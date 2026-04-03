@@ -19,30 +19,23 @@ Parameters:
     Description: Optional suffix for table names (e.g., -dev, -prod)
 
 Resources:
-  MyApi:
-    Type: AWS::Serverless::Api
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
     Properties:
       StageName: Prod
-
-  CorsGatewayResponse:
-    Type: AWS::ApiGateway::GatewayResponse
-    Properties:
-      ResponseType: DEFAULT_4XX
-      RestApiId: !Ref MyApi
-      ResponseParameters:
-        gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
-        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
-        gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
-
-  CorsGatewayResponseDefault:
-    Type: AWS::ApiGateway::GatewayResponse
-    Properties:
-      ResponseType: DEFAULT_5XX
-      RestApiId: !Ref MyApi
-      ResponseParameters:
-        gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
-        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
-        gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+      CorsConfiguration:
+        AllowOrigins:
+          - "*"
+        AllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+        MaxAge: 86400
 
   ApiFunction:
     Type: AWS::Serverless::Function
@@ -61,18 +54,54 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName: !Sub flight-paths${TableSuffix}
       Events:
-        ApiAny:
-          Type: Api
+        ApiGet:
+          Type: HttpApi
           Properties:
-            RestApiId: !Ref MyApi
+            ApiId: !Ref HttpApi
             Path: /{proxy+}
-            Method: ANY
-        ApiRoot:
-          Type: Api
+            Method: GET
+        ApiPost:
+          Type: HttpApi
           Properties:
-            RestApiId: !Ref MyApi
+            ApiId: !Ref HttpApi
+            Path: /{proxy+}
+            Method: POST
+        ApiPut:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /{proxy+}
+            Method: PUT
+        ApiDelete:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /{proxy+}
+            Method: DELETE
+        ApiRootGet:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
             Path: /
-            Method: ANY
+            Method: GET
+        ApiRootPost:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /
+            Method: POST
+        ApiRootPut:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /
+            Method: PUT
+        ApiRootDelete:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /
+            Method: DELETE
 
   GamesTable:
     Type: AWS::DynamoDB::Table
@@ -171,6 +200,6 @@ Resources:
             ProjectionType: ALL
 
 Outputs:
-  ApiUrl:
-    Description: API Gateway endpoint URL
-    Value: !Sub https://${MyApi}.execute-api.${AWS::Region}.amazonaws.com/Prod
+  HttpApiUrl:
+    Description: HTTP API endpoint URL
+    Value: !Sub 'https://${HttpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/Prod'

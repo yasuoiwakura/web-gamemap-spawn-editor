@@ -1,2 +1,2 @@
 
-sam deploy --profile=myawsprofile  --force-upload --force-build
+sam deploy --profile=myawsprofile  --force-upload
