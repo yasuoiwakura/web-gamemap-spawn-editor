@@ -26,6 +26,13 @@ except Exception as e:
     _import_error = str(e)
 
 def handler(event, context):
+    # Strip stage prefix from HTTP API path (e.g. /Prod/games -> /games)
+    stage = event.get('requestContext', {}).get('stage', '')
+    raw_path = event.get('rawPath', '')
+    if stage and raw_path.startswith(f'/{stage}'):
+        raw_path = raw_path[len(stage) + 1:] or '/'
+        event['rawPath'] = raw_path
+
     method = event.get('httpMethod', '')
     if method == 'OPTIONS':
         return {
