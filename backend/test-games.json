@@ -1,0 +1,1 @@
+{"httpMethod":"GET","path":"/games","resource":"/{proxy+}","headers":{},"queryStringParameters":null,"pathParameters":{"proxy":"games"},"requestContext":{"httpMethod":"GET","path":"/Prod/games","resourcePath":"/{proxy+}","stage":"Prod"},"body":null,"isBase64Encoded":false}

@@ -1,19 +1,8 @@
 from fastapi import APIRouter, HTTPException, status
-from fastapi.responses import JSONResponse
-from typing import List, Any
+from typing import Any
 from pydantic import BaseModel
 from ..services.dynamodb import db_service
-
-CORS_HEADERS = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-}
-
-
-def cors_response(content: Any, status_code: int = 200) -> JSONResponse:
-    return JSONResponse(content=content, status_code=status_code, headers=CORS_HEADERS)
-
+from ..utils import cors_response
 
 router = APIRouter(prefix="/maps", tags=["maps"])
 
@@ -49,7 +38,7 @@ def update_map(map_id: str, map_update: MapUpdate):
     ))
 
 
-@router.delete("/{map_id}")
+@router.delete("/{map_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_map(map_id: str):
     existing = db_service.get_map(map_id)
     if not existing:

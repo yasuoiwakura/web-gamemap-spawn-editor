@@ -1,8 +1,8 @@
 from fastapi import FastAPI, Request
-from fastapi.responses import Response
-from starlette.middleware.base import BaseHTTPMiddleware
+from fastapi.responses import JSONResponse
 from mangum import Mangum
 from .routers import games, maps, maps_direct, spawn_types, spawn_types_direct, pois, flight_paths
+import traceback
 
 app = FastAPI(
     title="GameMap Spawn Editor API",
@@ -10,30 +10,16 @@ app = FastAPI(
     version="1.0.0"
 )
 
-CORS_HEADERS = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-}
 
+@app.exception_handler(Exception)
+async def catch_all_exceptions(request: Request, exc: Exception):
+    print(f"EXCEPTION: {exc}")
+    traceback.print_exc()
+    return JSONResponse(
+        status_code=500,
+        content={"error": str(exc), "traceback": traceback.format_exc()}
+    )
 
-class CorsMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        if request.method == "OPTIONS":
-            return Response(
-                status_code=204,
-                headers=CORS_HEADERS,
-                body=""
-            )
-
-        response = await call_next(request)
-        response.headers["Access-Control-Allow-Origin"] = "*"
-        response.headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,DELETE,OPTIONS"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type"
-        return response
-
-
-app.add_middleware(CorsMiddleware)
 
 app.include_router(games.router)
 app.include_router(maps.router)
@@ -46,8 +32,7 @@ app.include_router(flight_paths.router)
 
 @app.get("/health")
 def health_check():
-    from fastapi.responses import JSONResponse
-    return JSONResponse(content={"status": "healthy"}, headers=CORS_HEADERS)
+    return {"status": "healthy"}
 
 
 handler = Mangum(app)

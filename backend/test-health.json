@@ -1,0 +1,1 @@
+{"httpMethod":"GET","path":"/health","resource":"/{proxy+}","headers":{},"queryStringParameters":null,"pathParameters":{"proxy":"health"},"requestContext":{"httpMethod":"GET","path":"/Prod/health","resourcePath":"/{proxy+}","stage":"Prod"},"body":null,"isBase64Encoded":false}
