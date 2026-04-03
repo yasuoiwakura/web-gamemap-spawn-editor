@@ -1,3 +1,4 @@
+import json
 from mangum import Mangum
 from app.main import app
 
@@ -18,4 +19,11 @@ def handler(event, context):
             'body': ''
         }
     
-    return _mangum_handler(event, context)
+    try:
+        return _mangum_handler(event, context)
+    except Exception as e:
+        return {
+            'statusCode': 500,
+            'headers': CORS_HEADERS,
+            'body': json.dumps({'error': str(e)})
+        }
