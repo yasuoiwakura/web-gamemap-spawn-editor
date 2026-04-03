@@ -1,7 +1,8 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from mangum import Mangum
 from .routers import games, maps, maps_direct, spawn_types, spawn_types_direct, pois, flight_paths
+import traceback
 
 app = FastAPI(
     title="GameMap Spawn Editor API",
@@ -9,13 +10,16 @@ app = FastAPI(
     version="1.0.0"
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+
+@app.exception_handler(Exception)
+async def catch_all_exceptions(request: Request, exc: Exception):
+    print(f"EXCEPTION: {exc}")
+    traceback.print_exc()
+    return JSONResponse(
+        status_code=500,
+        content={"error": str(exc), "traceback": traceback.format_exc()}
+    )
+
 
 app.include_router(games.router)
 app.include_router(maps.router)

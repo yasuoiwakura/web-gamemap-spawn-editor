@@ -1,0 +1,20 @@
+{
+  "httpMethod": "GET",
+  "path": "/games/52054fc1-8038-43ce-828b-bbbb206503ef/maps",
+  "resource": "/{proxy+}",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "queryStringParameters": null,
+  "pathParameters": {
+    "proxy": "games/52054fc1-8038-43ce-828b-bbbb206503ef/maps"
+  },
+  "requestContext": {
+    "httpMethod": "GET",
+    "path": "/Prod/games/52054fc1-8038-43ce-828b-bbbb206503ef/maps",
+    "resourcePath": "/{proxy+}",
+    "stage": "Prod"
+  },
+  "body": null,
+  "isBase64Encoded": false
+}

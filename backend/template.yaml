@@ -19,6 +19,31 @@ Parameters:
     Description: Optional suffix for table names (e.g., -dev, -prod)
 
 Resources:
+  MyApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+
+  CorsGatewayResponse:
+    Type: AWS::ApiGateway::GatewayResponse
+    Properties:
+      ResponseType: DEFAULT_4XX
+      RestApiId: !Ref MyApi
+      ResponseParameters:
+        gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+        gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+
+  CorsGatewayResponseDefault:
+    Type: AWS::ApiGateway::GatewayResponse
+    Properties:
+      ResponseType: DEFAULT_5XX
+      RestApiId: !Ref MyApi
+      ResponseParameters:
+        gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+        gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+
   ApiFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -39,11 +64,13 @@ Resources:
         ApiAny:
           Type: Api
           Properties:
+            RestApiId: !Ref MyApi
             Path: /{proxy+}
             Method: ANY
         ApiRoot:
           Type: Api
           Properties:
+            RestApiId: !Ref MyApi
             Path: /
             Method: ANY
 
@@ -146,4 +173,4 @@ Resources:
 Outputs:
   ApiUrl:
     Description: API Gateway endpoint URL
-    Value: !Sub https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod
+    Value: !Sub https://${MyApi}.execute-api.${AWS::Region}.amazonaws.com/Prod

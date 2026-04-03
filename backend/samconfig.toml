@@ -12,3 +12,9 @@ capabilities = [ "CAPABILITY_IAM", "CAPABILITY_NAMED_IAM" ]
 [default.global.parameters]
 region = "us-east-1"
 stack_name = "spawnmap-test"
+
+[default.build.parameters]
+template_file = "c:\\cloud\\matt.cloud.blox.media\\coden\\_github\\web-gamemap-spawn-editor\\backend\\template.yaml"
+cached = false
+use_container = false
+parallel = true

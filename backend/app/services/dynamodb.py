@@ -8,7 +8,8 @@ import uuid
 
 class DynamoDBService:
     def __init__(self, table_suffix: str = ""):
-        self.dynamodb = boto3.resource('dynamodb')
+        region = os.environ.get('REGION') or os.environ.get('AWS_REGION', 'us-east-1')
+        self.dynamodb = boto3.resource('dynamodb', region_name=region)
         self.table_suffix = table_suffix
         
         self.games_table = self.dynamodb.Table(f'games{table_suffix}')
@@ -67,6 +68,7 @@ class DynamoDBService:
     # Maps
     def get_maps_by_game(self, game_id: str) -> List[Dict[str, Any]]:
         response = self.maps_table.query(
+            IndexName='gameId-index',
             KeyConditionExpression=Key('gameId').eq(game_id)
         )
         return response.get('Items', [])
@@ -135,6 +137,7 @@ class DynamoDBService:
     # Spawn Types
     def get_spawn_types_by_game(self, game_id: str) -> List[Dict[str, Any]]:
         response = self.spawn_types_table.query(
+            IndexName='gameId-index',
             KeyConditionExpression=Key('gameId').eq(game_id)
         )
         return response.get('Items', [])
@@ -193,6 +196,7 @@ class DynamoDBService:
     # POIs
     def get_pois_by_map(self, map_id: str) -> List[Dict[str, Any]]:
         response = self.pois_table.query(
+            IndexName='mapId-index',
             KeyConditionExpression=Key('mapId').eq(map_id)
         )
         return response.get('Items', [])
@@ -255,6 +259,7 @@ class DynamoDBService:
     # Flight Paths
     def get_flight_paths_by_map(self, map_id: str) -> List[Dict[str, Any]]:
         response = self.flight_paths_table.query(
+            IndexName='mapId-index',
             KeyConditionExpression=Key('mapId').eq(map_id)
         )
         return response.get('Items', [])
@@ -282,4 +287,4 @@ class DynamoDBService:
 
 
 # Singleton instance
-db_service = DynamoDBService()
+db_service = DynamoDBService(table_suffix=os.environ.get('TABLE_SUFFIX', ''))
