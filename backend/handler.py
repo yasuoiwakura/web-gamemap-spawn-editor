@@ -20,7 +20,9 @@ def handler(event, context):
         }
     
     try:
-        return _mangum_handler(event, context)
+        response = _mangum_handler(event, context)
+        response['headers'] = {**response.get('headers', {}), **CORS_HEADERS}
+        return response
     except Exception as e:
         return {
             'statusCode': 500,
