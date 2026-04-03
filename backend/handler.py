@@ -10,7 +10,14 @@ except Exception as e:
     _mangum_handler = None
 
 def handler(event, context):
-    print(f"DEBUG rawPath: {event.get('rawPath')}", file=sys.stderr)
+    # HTTP API v2.0: non-$default stage prefixes rawPath with /{stage}
+    stage = event.get('requestContext', {}).get('stage', '')
+    raw_path = event.get('rawPath', '')
+    if stage and raw_path.startswith(f'/{stage}'):
+        raw_path = raw_path[len(stage) + 1:] or '/'
+        event['rawPath'] = raw_path
+
+    print(f"DEBUG rawPath: {raw_path}", file=sys.stderr)
     print(f"DEBUG method: {event.get('requestContext', {}).get('http', {}).get('method', event.get('httpMethod'))}", file=sys.stderr)
 
     if _mangum_handler is None:
