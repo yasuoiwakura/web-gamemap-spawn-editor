@@ -282,4 +282,4 @@ class DynamoDBService:
 
 
 # Singleton instance
-db_service = DynamoDBService()
+db_service = DynamoDBService(table_suffix=os.environ.get('TABLE_SUFFIX', ''))

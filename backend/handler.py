@@ -1,4 +1,21 @@
 from mangum import Mangum
 from app.main import app
 
-handler = Mangum(app, lifespan="auto")
+CORS_HEADERS = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+}
+
+_mangum_handler = Mangum(app, lifespan="auto")
+
+def handler(event, context):
+    method = event.get('httpMethod', '')
+    if method == 'OPTIONS':
+        return {
+            'statusCode': 204,
+            'headers': CORS_HEADERS,
+            'body': ''
+        }
+    
+    return _mangum_handler(event, context)
