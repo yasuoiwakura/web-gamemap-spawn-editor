@@ -12,3 +12,8 @@ capabilities = [ "CAPABILITY_IAM", "CAPABILITY_NAMED_IAM" ]
 [default.global.parameters]
 region = "us-east-1"
 stack_name = "spawnmap-test"
+
+[default.build.parameters]
+cached = false
+use_container = false
+parallel = true
