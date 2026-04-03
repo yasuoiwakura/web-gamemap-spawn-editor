@@ -8,7 +8,8 @@ import uuid
 
 class DynamoDBService:
     def __init__(self, table_suffix: str = ""):
-        self.dynamodb = boto3.resource('dynamodb')
+        region = os.environ.get('REGION') or os.environ.get('AWS_REGION', 'us-east-1')
+        self.dynamodb = boto3.resource('dynamodb', region_name=region)
         self.table_suffix = table_suffix
         
         self.games_table = self.dynamodb.Table(f'games{table_suffix}')
