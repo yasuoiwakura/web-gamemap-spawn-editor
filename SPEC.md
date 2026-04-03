@@ -16,6 +16,7 @@ Ein spieleoffener Map-Viewer für taktische Spiele (z.B. PUBG), der es Nutzern e
 | **Frontend** | SvelteKit | SSG-fähig, client-side Interaktivität |
 | **Mapping** | Leaflet | Einfachste Bibliothek für Overlays, Marker, Skalierung |
 | **Backend (MVP)** | Python FastAPI → AWS Lambda (SAM) | Developer-Stärke, SAM CLI |
+| **API Gateway** | HTTP API (nicht REST) | CORS automatisch, günstiger, schneller |
 | **Database** | DynamoDB | AWS Serverless, skalierbar |
 | **Deploy** | AWS SAM CLI | Lokales Testen mit `sam local` |
 | **Caching** | localStorage (Client) + API Gateway Cache | Schnelle Map-Wechsel, keine lokalen Daten |
