@@ -54,18 +54,54 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName: !Sub flight-paths${TableSuffix}
       Events:
-        ApiAny:
+        ApiGet:
           Type: HttpApi
           Properties:
             ApiId: !Ref HttpApi
             Path: /{proxy+}
-            Method: ANY
-        ApiRoot:
+            Method: GET
+        ApiPost:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /{proxy+}
+            Method: POST
+        ApiPut:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /{proxy+}
+            Method: PUT
+        ApiDelete:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /{proxy+}
+            Method: DELETE
+        ApiRootGet:
           Type: HttpApi
           Properties:
             ApiId: !Ref HttpApi
             Path: /
-            Method: ANY
+            Method: GET
+        ApiRootPost:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /
+            Method: POST
+        ApiRootPut:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /
+            Method: PUT
+        ApiRootDelete:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /
+            Method: DELETE
 
   GamesTable:
     Type: AWS::DynamoDB::Table
