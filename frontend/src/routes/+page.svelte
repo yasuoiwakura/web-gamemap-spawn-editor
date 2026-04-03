@@ -185,14 +185,12 @@
         onselect={handleSelectGame}
       />
       
-      {#if $clientState.currentGameId}
-        <button
-          class="px-3 py-2 bg-blue-600 rounded hover:bg-blue-700"
-          onclick={() => showCreateGame = true}
-        >
-          + Game
-        </button>
-      {/if}
+      <button
+        class="px-3 py-2 bg-blue-600 rounded hover:bg-blue-700"
+        onclick={() => showCreateGame = true}
+      >
+        + Game
+      </button>
     </div>
   </header>
 
