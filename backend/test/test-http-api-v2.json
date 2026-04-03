@@ -1,0 +1,29 @@
+{
+  "version": "2.0",
+  "routeKey": "$default",
+  "rawPath": "/Prod/games",
+  "rawQueryString": "",
+  "headers": {
+    "host": "az878mr2y2.execute-api.us-east-1.amazonaws.com",
+    "content-type": "application/json"
+  },
+  "requestContext": {
+    "accountId": "123456789012",
+    "apiId": "az878mr2y2",
+    "domainName": "az878mr2y2.execute-api.us-east-1.amazonaws.com",
+    "http": {
+      "method": "GET",
+      "path": "/Prod/games",
+      "protocol": "HTTP/1.1",
+      "sourceIp": "192.0.2.1",
+      "userAgent": "test"
+    },
+    "requestId": "test-request-id",
+    "routeKey": "$default",
+    "stage": "Prod",
+    "time": "03/Apr/2026:22:00:00 +0000",
+    "timeEpoch": 1712181600000
+  },
+  "body": null,
+  "isBase64Encoded": false
+}

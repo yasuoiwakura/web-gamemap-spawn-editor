@@ -1,0 +1,1 @@
+{"version": "2.0", "rawPath": "/Prod/health", "requestContext": { "http": { "method": "GET", "path": "/Prod/health" }, "stage": "Prod" }, "isBase64Encoded": false }
